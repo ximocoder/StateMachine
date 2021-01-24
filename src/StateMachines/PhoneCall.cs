@@ -2,7 +2,7 @@
 using Stateless;
 using Stateless.Graph;
 
-namespace ConsoleAppStateMachine
+namespace ConsoleAppStateMachine.StateMachines
 {
     public class PhoneCall
     {
