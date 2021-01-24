@@ -1,4 +1,5 @@
 ﻿using Stateless;
+using Stateless.Graph;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -9,7 +10,8 @@ namespace ConsoleAppStateMachine.StateMachines
     {
         enum Triggers
         {
-            Receive
+            Receive,
+            Send
         }
 
         enum States
@@ -18,27 +20,43 @@ namespace ConsoleAppStateMachine.StateMachines
             Received,
             Send
         }
-        readonly StateMachine<string, Triggers> _stateMachine;
-        StateMachine<States, Triggers>.TriggerWithParameters<string> _assignTrigger;
+        readonly StateMachine<States, Triggers> StateMachine;
+        StateMachine<States, Triggers>.TriggerWithParameters<string> AssignTrigger;
 
-        // Mapped by EF
-        public string State { get; set; }
+        // Mapped by ORM
+        public Invoice StateObject { get; set; }
 
-        States _state = States.Init;
+        States StateI = States.Init;
 
         public Invoices()
         {
-            //State = "initial";
-            //_stateMachine = new StateMachine<States, Triggers>(() => _state, s => State = string.Empty);
-            //_assignTrigger = _stateMachine.SetTriggerParameters<string>(Triggers.Receive);
+            StateObject = new Invoice() { Name = "test"};
+            StateMachine = new StateMachine<States, Triggers>(() => StateI, s => StateI = s);
+            AssignTrigger = StateMachine.SetTriggerParameters<string>(Triggers.Receive);
 
-            //_stateMachine.Configure(States.Init)
-            //    .Permit(Triggers.Receive, States.Received);
+            StateMachine.Configure(States.Init)
+                .Permit(Triggers.Receive, States.Received);
+
+            StateMachine.Configure(States.Received)
+                .Permit(Triggers.Send, States.Send); ;
+
+            StateMachine.Configure(States.Send);
         }
 
         public void Go()
         {
-            _stateMachine.Fire(Triggers.Receive);
+            StateObject.Name = "processing...";
+            StateMachine.Fire(Triggers.Receive);
+        }
+
+        public void Send()
+        {
+            StateObject.Name = "processed...";
+            StateMachine.Fire(Triggers.Send);
+        }
+        public string ToDotGraph()
+        {
+            return UmlDotGraph.Format(StateMachine.GetInfo());
         }
     }
 }

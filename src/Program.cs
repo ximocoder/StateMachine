@@ -11,11 +11,12 @@ namespace ConsoleAppStateMachine
     {
         static async System.Threading.Tasks.Task Main(string[] args)
         {
+            //for checking visually:   http://www.webgraphviz.com/
             //TestStatePhoneCall();
-            //Invoices();
+            Invoices();
             //Bugs();
 
-            await PollyAsync();
+            //await PollyAsync();
         }
 
         private static async Task PollyAsync()
@@ -47,7 +48,7 @@ namespace ConsoleAppStateMachine
             //var policy2 = Policy.Handle<Exception>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(5000));
 
             // We asign here for testing
-            var policy = policy1;
+            var policy = policy2;
 
             int i = 0;
 
@@ -101,6 +102,8 @@ namespace ConsoleAppStateMachine
         {
             Invoices inv = new Invoices();
             inv.Go();
+            inv.Send();
+            var dotGraph = inv.ToDotGraph();
         }
 
         static void TestStatePhoneCall()
