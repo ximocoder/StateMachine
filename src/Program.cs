@@ -16,7 +16,6 @@ namespace ConsoleAppStateMachine
             //Bugs();
 
             await PollyAsync();
-
         }
 
         private static async Task PollyAsync()
@@ -28,39 +27,58 @@ namespace ConsoleAppStateMachine
 
             });
 
-            // 3 retries
-            var policy2 = Policy.Handle<Exception>().RetryAsync(3, (exception, attempt) =>
+            //Circuit Breaker
+            var policy2 = Policy.Handle<HttpRequestException>().CircuitBreakerAsync(5, TimeSpan.FromSeconds(5),
+            (exception, timespan) =>
             {
-                Console.WriteLine("Policy2 logging: " + exception.Message);
+                Console.WriteLine("Policy2 logging on break");
 
+            },
+            () =>
+            {
+                Console.WriteLine("Policy2 logging reset");
+            },
+            () =>
+            {
+                Console.WriteLine("Policy2 logging on half open");
             });
+            var cs = policy2.CircuitState;
+
+            //var policy2 = Policy.Handle<Exception>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(5000));
 
             // We asign here for testing
             var policy = policy1;
 
             int i = 0;
-            try
+
+            while (true)
             {
-                HttpClient httpc = new HttpClient();
-                // Retry the following call according to the policy - 3 times.
-                await policy.ExecuteAsync(async () =>
+                try
                 {
-                    // This code is executed within the Policy 
+                    HttpClient httpc = new HttpClient();
+                    // Retry the following call according to the policy - 3 times.
+                    await policy.ExecuteAsync(async () =>
+                    {
+                        // This code is executed within the Policy 
 
-                    // Make a request and get a response
-                    //http://worldtimeapi.org/api/timezone/Europe/Stockholm
 
-                    var result =  await JsonSerializer.DeserializeAsync<TimeObject>
-                        (await httpc.GetStreamAsync($"http://worldtimeapi.org/api/timezone/Europe/Stoc"), new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+                        //http://worldtimeapi.org/api/timezone/Europe/Stockholm
 
-                    // Display the response message on the console
-                    Console.WriteLine("Response : " + result.datetime.ToString());
-                });
+                        i += 1;
+                        // Make a request and get a response
+                        var result = await JsonSerializer.DeserializeAsync<TimeObject>
+                        (await httpc.GetStreamAsync($"http://worldtimeapi.org/api/timezone/Europe/Stock"), new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
+
+                        // Display the response message on the console
+                        Console.WriteLine("Response : " + result.datetime.ToString());
+                    });
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Request " + i + " eventually failed with: " + e.Message);
+                };
             }
-            catch (Exception e)
-            {
-                Console.WriteLine("Request " + i + " eventually failed with: " + e.Message);
-            };
+
 
             Console.ReadLine();
 
